@@ -1,5 +1,6 @@
 package dev.vudovenko.onlinelibrary;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class BookController {
 
     @PostMapping("/books")
     public ResponseEntity<Book> createBook(
-            @RequestBody Book bookToCrete
+            @RequestBody @Valid Book bookToCrete
     ) {
         LOG.info("Get request for createBook: book={}", bookToCrete);
         Book createdBook = bookService.createBook(bookToCrete);
@@ -61,7 +62,7 @@ public class BookController {
     @PutMapping("/books/{id}")
     public Book updateBook(
             @PathVariable("id") Long id,
-            @RequestBody Book bookToUpdate
+            @RequestBody @Valid Book bookToUpdate
     ) {
         LOG.info("Get request for update book: id={}, bookToUpdate={}",
                 id, bookToUpdate);
