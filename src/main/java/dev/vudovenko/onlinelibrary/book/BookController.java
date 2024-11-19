@@ -1,4 +1,4 @@
-package dev.vudovenko.onlinelibrary;
+package dev.vudovenko.onlinelibrary.book;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,34 +17,38 @@ public class BookController {
     private static final Logger LOG = LoggerFactory.getLogger(BookController.class);
 
     private final BookService bookService;
+    private final BookDtoConverter dtoConverter;
 
     @GetMapping("/books")
-    public List<Book> getAllBooks(
-            @RequestParam(name = "authorName", required = false) String authorName,
-            @RequestParam(name = "maxCost", required = false) Integer maxCost
+    public List<BookDto> getAllBooks(
+            @Valid BookSearchFilter bookSearchFilter
     ) {
         LOG.info("Get request for getAllBooks");
-        return bookService.searchAllBooks(authorName, maxCost);
+        return bookService.searchAllBooks(bookSearchFilter)
+                .stream()
+                .map(dtoConverter::toDto)
+                .toList();
     }
 
     @PostMapping("/books")
-    public ResponseEntity<Book> createBook(
-            @RequestBody @Valid Book bookToCrete
+    public ResponseEntity<BookDto> createBook(
+            @RequestBody @Valid BookDto bookDtoToCrete
     ) {
-        LOG.info("Get request for createBook: book={}", bookToCrete);
-        Book createdBook = bookService.createBook(bookToCrete);
+        LOG.info("Get request for createBook: book={}", bookDtoToCrete);
+        Book createdBook = bookService.createBook(
+                dtoConverter.toDomain(bookDtoToCrete)
+        );
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .header("my-header", "123")
-                .body(createdBook);
+                .body(dtoConverter.toDto(createdBook));
     }
 
     @GetMapping("/books/{id}")
-    public Book findById(
+    public BookDto findById(
             @PathVariable("id") Long id
     ) {
         LOG.info("Get request for findById: id={}", id);
-        return bookService.findById(id);
+        return dtoConverter.toDto(bookService.findById(id));
     }
 
     @DeleteMapping("/books/{id}")
@@ -60,13 +64,18 @@ public class BookController {
     }
 
     @PutMapping("/books/{id}")
-    public Book updateBook(
+    public BookDto updateBook(
             @PathVariable("id") Long id,
-            @RequestBody @Valid Book bookToUpdate
+            @RequestBody @Valid BookDto bookDtoToUpdate
     ) {
         LOG.info("Get request for update book: id={}, bookToUpdate={}",
-                id, bookToUpdate);
+                id, bookDtoToUpdate);
 
-        return bookService.updateBook(id, bookToUpdate);
+        Book updatedBook = bookService.updateBook(
+                id,
+                dtoConverter.toDomain(bookDtoToUpdate)
+        );
+
+        return dtoConverter.toDto(updatedBook);
     }
 }

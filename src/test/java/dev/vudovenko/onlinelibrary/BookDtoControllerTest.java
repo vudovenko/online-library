@@ -1,6 +1,8 @@
 package dev.vudovenko.onlinelibrary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.vudovenko.onlinelibrary.book.BookDto;
+import dev.vudovenko.onlinelibrary.book.BookService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc
 @SpringBootTest
-class BookControllerTest {
+class BookDtoControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -26,7 +28,7 @@ class BookControllerTest {
 
     @Test
     void shouldSuccessCreateBook() throws Exception {
-        Book book = new Book(
+        BookDto bookDto = new BookDto(
                 null,
                 "some-book-a",
                 "Vlad",
@@ -35,7 +37,7 @@ class BookControllerTest {
                 6000
         );
 
-        String bookJson = objectMapper.writeValueAsString(book);
+        String bookJson = objectMapper.writeValueAsString(bookDto);
 
         String createdBookJson = mockMvc.perform(
                         post("/books")
@@ -47,18 +49,18 @@ class BookControllerTest {
                 .getResponse()
                 .getContentAsString();
 
-        Book bookResponse = objectMapper.readValue(createdBookJson, Book.class);
+        BookDto bookDtoResponse = objectMapper.readValue(createdBookJson, BookDto.class);
 
-        Assertions.assertNotNull(bookResponse.id());
-        org.assertj.core.api.Assertions.assertThat(bookResponse)
+        Assertions.assertNotNull(bookDtoResponse.id());
+        org.assertj.core.api.Assertions.assertThat(bookDtoResponse)
                 .usingRecursiveComparison()
                 .ignoringFields("id")
-                .isEqualTo(book);
+                .isEqualTo(bookDto);
     }
 
     @Test
     void shouldNotCreateBookWhenRequestNotValid() throws Exception {
-        Book book = new Book(
+        BookDto bookDto = new BookDto(
                 null,
                 null,
                 "Vlad",
@@ -67,7 +69,7 @@ class BookControllerTest {
                 6000
         );
 
-        String bookJson = objectMapper.writeValueAsString(book);
+        String bookJson = objectMapper.writeValueAsString(bookDto);
 
         mockMvc.perform(
                         post("/books")
@@ -79,7 +81,7 @@ class BookControllerTest {
 
     @Test
     public void shouldSuccessSearchBookById() throws Exception {
-        Book book = new Book(
+        BookDto bookDto = new BookDto(
                 null,
                 "some-book-a",
                 "Vlad",
@@ -87,16 +89,16 @@ class BookControllerTest {
                 100,
                 6000
         );
-        book = bookService.createBook(book);
+        bookDto = bookService.createBook(bookDto);
 
-        String foundBookJson = mockMvc.perform(get("/books/{id}", book.id()))
+        String foundBookJson = mockMvc.perform(get("/books/{id}", bookDto.id()))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        Book foundBook = objectMapper.readValue(foundBookJson, Book.class);
-        Assertions.assertEquals(book, foundBook);
+        BookDto foundBookDto = objectMapper.readValue(foundBookJson, BookDto.class);
+        Assertions.assertEquals(bookDto, foundBookDto);
     }
 
     @Test

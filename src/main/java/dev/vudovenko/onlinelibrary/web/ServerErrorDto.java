@@ -1,4 +1,4 @@
-package dev.vudovenko.onlinelibrary;
+package dev.vudovenko.onlinelibrary.web;
 
 import java.time.LocalDateTime;
 

@@ -1,11 +1,11 @@
-package dev.vudovenko.onlinelibrary;
+package dev.vudovenko.onlinelibrary.book;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Book(
+public record BookDto(
 
         @Null
         Long id,
