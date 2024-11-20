@@ -9,7 +9,7 @@ public class BookDtoConverter {
         return new BookDto(
                 book.id(),
                 book.name(),
-                book.authorName(),
+                book.authorId(),
                 book.publicationYear(),
                 book.pageNumber(),
                 book.cost()
@@ -20,7 +20,7 @@ public class BookDtoConverter {
         return new Book(
                 bookDto.id(),
                 bookDto.name(),
-                bookDto.authorName(),
+                bookDto.authorId(),
                 bookDto.publicationYear(),
                 bookDto.pageNumber(),
                 bookDto.cost()

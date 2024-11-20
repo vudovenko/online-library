@@ -4,7 +4,7 @@ public record Book(
 
         Long id,
         String name,
-        String authorName,
+        Long authorId,
         Integer publicationYear,
         Integer pageNumber,
         Integer cost

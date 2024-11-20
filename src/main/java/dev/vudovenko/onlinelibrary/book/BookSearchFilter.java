@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Min;
 
 public record BookSearchFilter(
 
-        String authorName,
+        Long authorId,
         Integer maxCost,
         @Min(0)
         Integer pageNumber,

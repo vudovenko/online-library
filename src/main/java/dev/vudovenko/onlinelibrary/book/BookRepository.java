@@ -17,28 +17,27 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
             """
                     select b
                     from BookEntity b
-                    where (:authorName is null or b.authorName = :authorName)
-                    and (:cost is null or b.cost < :cost)
+                    where (:authorId is null or b.authorId = :authorId)
+                    and (:maxCost is null or b.cost < :maxCost)
                     """
     )
     List<BookEntity> searchBooks(
-            @Param("authorName") String authorName,
-            @Param("cost") Integer cost,
+            @Param("authorId") Long authorId,
+            @Param("maxCost") Integer maxCost,
             Pageable pageable
     );
 
     @Query(
             value = """
-                    select *
-                    from books b
-                    where (:authorName is null or b.author_name = :authorName)
-                    and (:cost is null or b.cost < :cost)
+                    SELECT * from books b
+                    WHERE (:authorId IS NULL OR b.author_id = :authorId)
+                    AND (:cost IS NULL OR b.cost < :cost)
                     """,
             nativeQuery = true
     )
     List<BookEntity> searchBooksNative(
-            @Param("authorName") String authorName,
-            @Param("cost") Integer cost
+            Long authorId,
+            @Param("cost") Integer maxCost
     );
 
     @Transactional
@@ -48,7 +47,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
                     UPDATE BookEntity b
                     SET
                         b.name = :name,
-                        b.authorName = :authorName,
+                        b.authorId = :authorId,
                         b.publicationYear = :pubYear,
                         b.pageNumber = :pageNum,
                         b.cost = :cost
@@ -58,7 +57,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     void updateBook(
             @Param("id") Long id,
             @Param("name") String name,
-            @Param("authorName") String authorName,
+            @Param("authorId") Long authorId,
             @Param("pubYear") Integer publicationYear,
             @Param("pageNum") Integer pageNumber,
             @Param("cost") Integer cost

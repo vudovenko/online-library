@@ -1,24 +1,20 @@
 package dev.vudovenko.onlinelibrary.book;
 
+import dev.vudovenko.onlinelibrary.author.AuthorService;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class BookService {
 
     private final BookRepository bookRepository;
+    private final AuthorService authorService;
     private final BookEntityConverter entityConverter;
-
-    public BookService(
-            BookRepository bookRepository,
-            BookEntityConverter entityConverter
-    ) {
-        this.bookRepository = bookRepository;
-        this.entityConverter = entityConverter;
-    }
 
     public List<Book> searchAllBooks(BookSearchFilter bookSearchFilter) {
         int pageSize = bookSearchFilter.pageSize() != null
@@ -33,7 +29,7 @@ public class BookService {
                 .withPage(pageNumber);
 
         return bookRepository.searchBooks(
-                        bookSearchFilter.authorName(),
+                        bookSearchFilter.authorId(),
                         bookSearchFilter.maxCost(),
                         pageable
                 )
@@ -43,24 +39,13 @@ public class BookService {
     }
 
     public Book createBook(Book bookToCrete) {
-        BookEntity bookToSave = new BookEntity(
-                null,
-                bookToCrete.name(),
-                bookToCrete.authorName(),
-                bookToCrete.publicationYear(),
-                bookToCrete.pageNumber(),
-                bookToCrete.cost()
-        );
-        BookEntity savedEntity = bookRepository.save(bookToSave);
+        checkAuthorExistence(bookToCrete.authorId());
 
-        return new Book(
-                savedEntity.getId(),
-                savedEntity.getName(),
-                savedEntity.getAuthorName(),
-                savedEntity.getPublicationYear(),
-                bookToSave.getPageNumber(),
-                bookToSave.getCost()
+        BookEntity savedEntity = bookRepository.save(
+                entityConverter.toEntity(bookToCrete)
         );
+
+        return entityConverter.toDomain(savedEntity);
     }
 
     public Book findById(Long id) {
@@ -86,14 +71,23 @@ public class BookService {
         if (!bookRepository.existsById(id)) {
             throw new EntityNotFoundException("No found book by id=%s".formatted(id));
         }
+        checkAuthorExistence(bookToUpdate.authorId());
+
         bookRepository.updateBook(
                 id,
                 bookToUpdate.name(),
-                bookToUpdate.authorName(),
+                bookToUpdate.authorId(),
                 bookToUpdate.publicationYear(),
                 bookToUpdate.pageNumber(),
                 bookToUpdate.cost()
         );
         return entityConverter.toDomain(bookRepository.findById(id).orElseThrow());
+    }
+
+    private void checkAuthorExistence(Long authorId) {
+        if (!authorService.isAuthorExistsById(authorId)) {
+            throw new IllegalArgumentException("Author not exists by id=%s"
+                    .formatted(authorId));
+        }
     }
 }

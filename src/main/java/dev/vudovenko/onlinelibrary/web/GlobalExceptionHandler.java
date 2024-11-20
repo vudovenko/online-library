@@ -17,19 +17,20 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(value = {MethodArgumentNotValidException.class})
+    @ExceptionHandler({
+            MethodArgumentNotValidException.class,
+            IllegalArgumentException.class
+    })
     public ResponseEntity<ServerErrorDto> handleValidationException(
-            MethodArgumentNotValidException e
+            Exception e
     ) {
         log.error("Got validation exception", e);
 
-        String detailedMessage = e.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
-                .collect(Collectors.joining(", "));
+        String detailedMessage = e instanceof MethodArgumentNotValidException
+                ? constructMethodArgumentNotValidMessage((MethodArgumentNotValidException) e)
+                : e.getMessage();
 
-        var errorDto = new ServerErrorDto(
+        ServerErrorDto errorDto =  new ServerErrorDto(
                 "Ошибка валидации запроса",
                 detailedMessage,
                 LocalDateTime.now()
@@ -45,7 +46,7 @@ public class GlobalExceptionHandler {
             Exception e
     ) {
         log.error("Server error", e);
-        var errorDto = new ServerErrorDto(
+        ServerErrorDto errorDto = new ServerErrorDto(
                 "Server error",
                 e.getMessage(),
                 LocalDateTime.now()
@@ -61,7 +62,7 @@ public class GlobalExceptionHandler {
             EntityNotFoundException e
     ) {
         log.error("Got exception", e);
-        var errorDto = new ServerErrorDto(
+        ServerErrorDto errorDto =  new ServerErrorDto(
                 "Сущность не найдена",
                 e.getMessage(),
                 LocalDateTime.now()
@@ -70,5 +71,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(errorDto);
+    }
+
+    private static String constructMethodArgumentNotValidMessage(
+            MethodArgumentNotValidException e
+    ) {
+        return e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
     }
 }

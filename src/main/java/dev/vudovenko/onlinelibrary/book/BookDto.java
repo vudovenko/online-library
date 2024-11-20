@@ -14,9 +14,8 @@ public record BookDto(
         @NotBlank
         String name,
 
-        @Size(max = 30)
-        @NotBlank
-        String authorName,
+        @NotNull
+        Long authorId,
 
         @Min(0)
         @NotNull

@@ -9,7 +9,7 @@ public class BookEntityConverter {
         return new BookEntity(
                 book.id(),
                 book.name(),
-                book.authorName(),
+                book.authorId(),
                 book.publicationYear(),
                 book.pageNumber(),
                 book.cost()
@@ -20,7 +20,7 @@ public class BookEntityConverter {
         return new Book(
                 book.getId(),
                 book.getName(),
-                book.getAuthorName(),
+                book.getAuthorId(),
                 book.getPublicationYear(),
                 book.getPageNumber(),
                 book.getCost()
