@@ -41,4 +41,15 @@ public class AuthorController {
                 .map(authorDtoConverter::toDto)
                 .toList();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAuthor(
+            @PathVariable("id") Long authorId
+    ) {
+        LOGGER.info("Get request for delete author: authorId = {}", authorId);
+        authorService.deleteAuthor(authorId);
+        return ResponseEntity
+                .status(HttpStatus.NO_CONTENT)
+                .build();
+    }
 }
