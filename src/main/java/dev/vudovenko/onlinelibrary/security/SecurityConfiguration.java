@@ -15,16 +15,17 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 
 /**
  * Конфигурация безопасности для приложения.
- * Этот класс настраивает аутентификацию и авторизацию пользователей в приложении,
- * а также управление сессиями и настройки безопасности HTTP.
+ * Этот класс настраивает аутентификацию и авторизацию пользователей,
+ * управление сессиями и настройки безопасности HTTP.
  * <p>
- * В классе используются настройки для отключения CSRF-защиты и управления сессиями в
- * режиме "STATLESS" для API. Также настраиваются доступы к определённым URL-ам в зависимости
- * от ролей и методов запросов.
+ * Отключается CSRF-защита и используется stateless-сессии для API.
+ * Настраивается доступ к определённым URL в зависимости от ролей и методов запросов.
  */
 @Configuration
 @EnableMethodSecurity
@@ -32,20 +33,29 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
 
     private final UserDetailsService customUserDetailsService;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     /**
-     * Метод конфигурирует фильтры безопасности для HTTP-запросов.
-     * Отключает использование формы входа и CSRF-защиту, а также настраивает
-     * управление сессиями в режиме "STATLESS" (без сессий).
-     * <br>
-     * Настроено разрешение доступа к определённым эндпоинтам, например, к методу POST
-     * на /users, который доступен для всех пользователей.
+     * Конфигурирует фильтры безопасности для HTTP-запросов.
+     * Отключает форму входа и CSRF-защиту, устанавливает управление сессиями в режиме "STATELESS".
      * <p>
-     * Данный метод используется для конфигурации всех фильтров безопасности на уровне HTTP-запросов.
+     * Настраивает разрешения доступа к определённым эндпоинтам на основе ролей и методов HTTP-запросов.
+     * При возникновении ошибки при аутентификации пользователя,
+     * например, с невалидным логином или паролем, заблокированным аккаунтом,
+     * будет вызываться {@link CustomAuthenticationEntryPoint}.
+     * <p>
+     * При возникновении ошибки при доступе к ресурсу, для которого у пользователя нет необходимых прав,
+     * будет вызываться {@link CustomAccessDeniedHandler}.
+     * <p>
+     * Стандартный {@link ControllerAdvice} не может обработать такие ошибки, потому что
+     * исключения аутентификации происходят на этапе фильтрации запросов в Spring Security,
+     * до того как запрос достигнет контроллера.
+     * Поэтому для обработки этих исключений необходимо использовать {@link AuthenticationEntryPoint}.
      *
-     * @param http Объект для настройки фильтров безопасности HTTP.
-     * @return Конфигурация фильтров безопасности для HTTP-запросов.
-     * @throws Exception Если происходит ошибка при настройке фильтров безопасности.
+     * @param http объект для настройки фильтров безопасности HTTP.
+     * @return конфигурация фильтров безопасности для HTTP-запросов.
+     * @throws Exception если происходит ошибка при настройке фильтров безопасности.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -56,27 +66,32 @@ public class SecurityConfiguration {
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authorizeHttpRequests(authorizeHttpRequests ->
-                        authorizeHttpRequests
-                                .requestMatchers(HttpMethod.POST, "/authors")
-                                .hasAnyAuthority("ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/authors/**")
-                                .hasAnyAuthority("ADMIN", "USER")
-//                                .requestMatchers(HttpMethod.DELETE, "/authors/**")
-//                                .hasAnyAuthority("ADMIN")
+                .authorizeHttpRequests(
+                        authorizeHttpRequests ->
+                                authorizeHttpRequests
+                                        .requestMatchers(HttpMethod.POST, "/authors")
+                                        .hasAnyAuthority("ADMIN")
+                                        .requestMatchers(HttpMethod.GET, "/authors/**")
+                                        .hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(HttpMethod.POST, "/books")
-                                .hasAnyAuthority("ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/books/**")
-                                .hasAnyAuthority("ADMIN", "USER")
-                                .requestMatchers(HttpMethod.DELETE, "/books/**")
-                                .hasAnyAuthority("ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/books/**")
-                                .hasAnyAuthority("ADMIN")
+                                        .requestMatchers(HttpMethod.POST, "/books")
+                                        .hasAnyAuthority("ADMIN")
+                                        .requestMatchers(HttpMethod.GET, "/books/**")
+                                        .hasAnyAuthority("ADMIN", "USER")
+                                        .requestMatchers(HttpMethod.DELETE, "/books/**")
+                                        .hasAnyAuthority("ADMIN")
+                                        .requestMatchers(HttpMethod.PUT, "/books/**")
+                                        .hasAnyAuthority("ADMIN")
 
-                                .requestMatchers(HttpMethod.POST, "/users")
-                                .permitAll()
-                                .anyRequest().authenticated()
+                                        .requestMatchers(HttpMethod.POST, "/users")
+                                        .permitAll()
+                                        .anyRequest().authenticated()
+                )
+                .exceptionHandling(
+                        exception ->
+                                exception
+                                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                                        .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .httpBasic(Customizer.withDefaults())
                 .build();
@@ -106,17 +121,14 @@ public class SecurityConfiguration {
     }
 
     /**
-     * Конфигурирует и возвращает {@link AuthenticationProvider}, который отвечает за
-     * аутентификацию пользователей на основе данных, полученных через {@link UserDetailsService}.
-     * Использует {@link NoOpPasswordEncoder} для паролей.
+     * Конфигурирует и возвращает {@link AuthenticationProvider}, отвечающий за
+     * аутентификацию пользователей на основе {@link UserDetailsService}.
+     * Использует {@link NoOpPasswordEncoder} для обработки паролей.
      * <p>
-     * Этот метод создаёт объект {@link DaoAuthenticationProvider}, который используется
-     * для аутентификации на основе данных пользователей, получаемых через {@link UserDetailsService}.
-     * <br>
-     * Используется в связке с {@link AuthenticationManager} для выполнения аутентификации.
+     * Создаёт {@link DaoAuthenticationProvider} для аутентификации пользователей,
+     * получаемых через {@link UserDetailsService}, и использует его с {@link AuthenticationManager}.
      *
-     * @return {@link AuthenticationProvider}, настроенный для аутентификации через
-     * {@link UserDetailsService} и {@link NoOpPasswordEncoder}.
+     * @return настроенный {@link AuthenticationProvider} для аутентификации.
      */
     @Bean
     public AuthenticationProvider authenticationProvider() {

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,7 +31,7 @@ public class GlobalExceptionHandler {
                 ? constructMethodArgumentNotValidMessage((MethodArgumentNotValidException) e)
                 : e.getMessage();
 
-        ServerErrorDto errorDto =  new ServerErrorDto(
+        ServerErrorDto errorDto = new ServerErrorDto(
                 "Ошибка валидации запроса",
                 detailedMessage,
                 LocalDateTime.now()
@@ -62,7 +63,7 @@ public class GlobalExceptionHandler {
             EntityNotFoundException e
     ) {
         log.error("Got exception", e);
-        ServerErrorDto errorDto =  new ServerErrorDto(
+        ServerErrorDto errorDto = new ServerErrorDto(
                 "Сущность не найдена",
                 e.getMessage(),
                 LocalDateTime.now()
@@ -70,6 +71,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(errorDto);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ServerErrorDto> handleAuthorizationException(
+            AuthorizationDeniedException e
+    ) {
+        log.error("Handle authorization exception", e);
+        ServerErrorDto errorDto = new ServerErrorDto(
+                "Forbidden",
+                e.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
                 .body(errorDto);
     }
 
