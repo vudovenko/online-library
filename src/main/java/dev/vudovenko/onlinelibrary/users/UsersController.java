@@ -1,5 +1,6 @@
 package dev.vudovenko.onlinelibrary.users;
 
+import dev.vudovenko.onlinelibrary.security.jwt.JwtAuthenticationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UsersController {
 
     private final UserService userService;
+    private final JwtAuthenticationService jwtAuthenticationService;
 
     @PostMapping
     public ResponseEntity<UserDto> registerUser(
@@ -28,5 +30,16 @@ public class UsersController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new UserDto(user.id(), user.login()));
+    }
+
+    @PostMapping("/auth")
+    public ResponseEntity<JwtTokenResponse> authenticate(
+            @RequestBody @Valid SignInRequest signInRequest
+    ) {
+        log.info("Get request for sign-in: login={}", signInRequest.login());
+
+        String token = jwtAuthenticationService.authenticateUser(signInRequest);
+
+        return ResponseEntity.ok(new JwtTokenResponse(token));
     }
 }

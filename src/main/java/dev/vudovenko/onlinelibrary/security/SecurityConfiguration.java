@@ -85,6 +85,8 @@ public class SecurityConfiguration {
 
                                         .requestMatchers(HttpMethod.POST, "/users")
                                         .permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/users/auth")
+                                        .permitAll()
                                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(
