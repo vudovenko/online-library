@@ -7,6 +7,7 @@ import dev.vudovenko.onlinelibrary.book.Book;
 import dev.vudovenko.onlinelibrary.book.BookDto;
 import dev.vudovenko.onlinelibrary.book.BookRepository;
 import dev.vudovenko.onlinelibrary.book.BookService;
+import dev.vudovenko.onlinelibrary.users.UserRole;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class BookDtoControllerTest extends AbstractTest {
+class BookControllerTest extends AbstractTest {
 
     @Autowired
     private BookService bookService;
@@ -45,6 +46,7 @@ class BookDtoControllerTest extends AbstractTest {
                         post("/books")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(bookJson)
+                                .header("Authorization", getAuthorizationHeader(UserRole.ADMIN))
                 )
                 .andExpect(status().is(201))
                 .andReturn()
@@ -78,6 +80,7 @@ class BookDtoControllerTest extends AbstractTest {
                         post("/books")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(bookJson)
+                                .header("Authorization", getAuthorizationHeader(UserRole.ADMIN))
                 )
                 .andExpect(status().is(400));
     }
@@ -95,7 +98,10 @@ class BookDtoControllerTest extends AbstractTest {
         );
         book = bookService.createBook(book);
 
-        String foundBookJson = mockMvc.perform(get("/books/{id}", book.id()))
+        String foundBookJson = mockMvc.perform(
+                        get("/books/{id}", book.id())
+                                .header("Authorization", getAuthorizationHeader(UserRole.USER))
+                )
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
@@ -110,7 +116,10 @@ class BookDtoControllerTest extends AbstractTest {
 
     @Test
     public void shouldReturnNotFoundWhenNotPresent() throws Exception {
-        mockMvc.perform(get("/books/{id}", Integer.MAX_VALUE))
+        mockMvc.perform(
+                        get("/books/{id}", Integer.MAX_VALUE)
+                                .header("Authorization", getAuthorizationHeader(UserRole.USER))
+                )
                 .andExpect(status().is(404));
     }
 

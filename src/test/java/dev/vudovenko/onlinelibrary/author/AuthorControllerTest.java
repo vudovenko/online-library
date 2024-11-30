@@ -3,6 +3,7 @@ package dev.vudovenko.onlinelibrary.author;
 import dev.vudovenko.onlinelibrary.AbstractTest;
 import dev.vudovenko.onlinelibrary.book.Book;
 import dev.vudovenko.onlinelibrary.book.BookService;
+import dev.vudovenko.onlinelibrary.users.UserRole;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ class AuthorControllerTest extends AbstractTest {
                         post("/authors")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(authorJson)
+                                .header("Authorization", getAuthorizationHeader(UserRole.ADMIN))
                 )
                 .andExpect(status().is(201))
                 .andReturn()
@@ -69,7 +71,10 @@ class AuthorControllerTest extends AbstractTest {
                 .mapToObj(i -> createBootToAuthor(author.id()))
                 .toList();
 
-        mockMvc.perform(delete("/authors/{id}", author.id()))
+        mockMvc.perform(
+                        delete("/authors/{id}", author.id())
+                                .header("Authorization", getAuthorizationHeader(UserRole.ADMIN))
+                )
                 .andExpect(status().isNoContent());
 
         Assertions.assertFalse(authorRepository.existsById(author.id()));
@@ -78,6 +83,15 @@ class AuthorControllerTest extends AbstractTest {
                     Book updatedBook = bookService.findById(book.id());
                     Assertions.assertNull(updatedBook.authorId());
                 });
+    }
+
+    @Test
+    void shouldReturnForbiddenWhenUserTriesToDeleteAuthor() throws Exception {
+        mockMvc.perform(
+                        delete("/authors/{id}", 1L)
+                                .header("Authorization", getAuthorizationHeader(UserRole.USER))
+                )
+                .andExpect(status().isForbidden());
     }
 
     public Book createBootToAuthor(Long authorId) {

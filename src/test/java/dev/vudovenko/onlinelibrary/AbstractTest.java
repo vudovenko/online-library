@@ -1,6 +1,7 @@
 package dev.vudovenko.onlinelibrary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.vudovenko.onlinelibrary.users.UserRole;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,6 +24,8 @@ public class AbstractTest {
     protected MockMvc mockMvc;
     @Autowired
     protected ObjectMapper objectMapper;
+    @Autowired
+    protected UserTestUtils userTestUtils;
 
     protected final SecureRandom secureRandom = new SecureRandom();
 
@@ -54,5 +57,9 @@ public class AbstractTest {
 
     public int getRandomInt() {
         return secureRandom.nextInt();
+    }
+
+    public String getAuthorizationHeader(UserRole role) {
+        return "Bearer " + userTestUtils.getJwtTokenWithRole(role);
     }
 }
