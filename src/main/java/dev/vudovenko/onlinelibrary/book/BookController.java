@@ -1,29 +1,33 @@
 package dev.vudovenko.onlinelibrary.book;
 
+import dev.vudovenko.onlinelibrary.book.purchase.PurchaseService;
+import dev.vudovenko.onlinelibrary.security.jwt.AuthenticationService;
+import dev.vudovenko.onlinelibrary.users.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Log4j2
 @RestController
 @RequiredArgsConstructor
 public class BookController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(BookController.class);
-
     private final BookService bookService;
     private final BookDtoConverter dtoConverter;
+    private final AuthenticationService authenticationService;
+    private final PurchaseService purchaseService;
 
     @GetMapping("/books")
     public List<BookDto> getAllBooks(
             @Valid BookSearchFilter bookSearchFilter
     ) {
-        LOG.info("Get request for getAllBooks");
+        log.info("Get request for getAllBooks");
         return bookService.searchAllBooks(bookSearchFilter)
                 .stream()
                 .map(dtoConverter::toDto)
@@ -34,7 +38,7 @@ public class BookController {
     public ResponseEntity<BookDto> createBook(
             @RequestBody @Valid BookDto bookDtoToCrete
     ) {
-        LOG.info("Get request for createBook: book={}", bookDtoToCrete);
+        log.info("Get request for createBook: book={}", bookDtoToCrete);
         Book createdBook = bookService.createBook(
                 dtoConverter.toDomain(bookDtoToCrete)
         );
@@ -47,7 +51,7 @@ public class BookController {
     public BookDto findById(
             @PathVariable("id") Long id
     ) {
-        LOG.info("Get request for findById: id={}", id);
+        log.info("Get request for findById: id={}", id);
         return dtoConverter.toDto(bookService.findById(id));
     }
 
@@ -55,7 +59,7 @@ public class BookController {
     public ResponseEntity<Void> deleteById(
             @PathVariable("id") Long id
     ) {
-        LOG.info("Get request for deleteById: id={}", id);
+        log.info("Get request for deleteById: id={}", id);
         bookService.deleteBook(id);
 
         return ResponseEntity
@@ -68,7 +72,7 @@ public class BookController {
             @PathVariable("id") Long id,
             @RequestBody @Valid BookDto bookDtoToUpdate
     ) {
-        LOG.info("Get request for update book: id={}, bookToUpdate={}",
+        log.info("Get request for update book: id={}, bookToUpdate={}",
                 id, bookDtoToUpdate);
 
         Book updatedBook = bookService.updateBook(
@@ -77,5 +81,21 @@ public class BookController {
         );
 
         return dtoConverter.toDto(updatedBook);
+    }
+
+    @PostMapping("/books/{id}/purchase")
+    @PreAuthorize("hasAuthority('USER')")
+    public ResponseEntity<Void> purchaseBook(
+            @PathVariable("id") Long bookId
+    ) {
+        log.info("Get request for book purchase: bookId={}", bookId);
+
+        User user = authenticationService.getCurrentAuthenticatedUserOrThrow();
+
+        purchaseService.performBookPurchase(user, bookId);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .build();
     }
 }
